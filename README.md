@@ -2,7 +2,7 @@
 
 A distributed job-processing platform: an API gateway accepts jobs, a Redis
 Stream acts as the message queue, and a pool of worker processes consumes and
-executes jobs — with automatic retries and failure recovery if a worker dies
+executes jobs, with automatic retries and failure recovery if a worker dies
 mid-job.
 
 ## Architecture
