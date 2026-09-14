@@ -25,27 +25,27 @@ drops in-flight work.
 
 ## Step-by-step: how this was built
 
-1. **Job model** — each job gets a UUID and is stored as a Redis hash
+1. **Job model** : each job gets a UUID and is stored as a Redis hash
    (`job:<id>`) holding status, timestamps, attempt count, and result. This
    is what `GET /jobs/{id}` reads from.
-2. **API gateway** (`gateway/main.py`) — FastAPI app with `POST /jobs` (adds
+2. **API gateway** (`gateway/main.py`) : FastAPI app with `POST /jobs` (adds
    the job hash, then `XADD`s it to the stream) and `GET /jobs/{id}` (polls
    status). A `/stats` endpoint exposes queue depth and pending count.
-3. **Message queue** — a Redis Stream (`tasks`) with a consumer group
+3. **Message queue** : a Redis Stream (`tasks`) with a consumer group
    (`workers`), created once via `XGROUP CREATE`.
-4. **Worker pool** (`worker/worker.py`) — each worker is its own process,
+4. **Worker pool** (`worker/worker.py`) : each worker is its own process,
    reads new jobs with `XREADGROUP`, processes them, and `XACK`s on success.
 5. **Retries** — on failure, the job is deliberately left un-ACKed. It's
    retried automatically (see step 6) rather than requiring the worker to
    manually requeue it.
-6. **Failure recovery** — before reading new jobs, every worker calls
+6. **Failure recovery** : before reading new jobs, every worker calls
    `reclaim_stuck_jobs()`, which scans the PEL for entries idle longer than
    `CLAIM_IDLE_MS`, claims them, and either retries or marks them `failed`
    once `MAX_ATTEMPTS` is exceeded. This is what recovers work automatically
    if a worker container crashes or is killed.
-7. **Containerization** — each service (`gateway/`, `worker/`) has its own
+7. **Containerization** : each service (`gateway/`, `worker/`) has its own
    Dockerfile; `docker-compose.yml` wires them together with Redis.
-8. **Benchmarking** (`benchmark/load_test.py`) — submits N jobs concurrently,
+8. **Benchmarking** (`benchmark/load_test.py`) : submits N jobs concurrently,
    polls each until done, and reports throughput (jobs/sec) and latency
    percentiles.
 
@@ -127,9 +127,9 @@ a table like:
 
 | Workers | Throughput (jobs/sec) | p50 latency | p95 latency |
 |---|---|---|---|
-| 1 | | | |
-| 2 | | | |
-| 4 | | | |
+| 1 |45.2 |0.85s |1.3s |
+| 2 |54.5 |0.95s |1.15s|
+| 4 |49 | |0.85s |1.5s |
 
 Paste your actual numbers here once you've run it — this table (plus a
 simple bar chart of throughput vs. worker count) is exactly what goes in
@@ -145,7 +145,7 @@ latency scaling from 1 to 4 workers" claim on your CV.
 | `CLAIM_IDLE_MS` | `10000` | How long a job can sit unacked before another worker reclaims it |
 | `SIMULATED_FAIL_RATE` | `0.0` | Probability (0-1) a job deliberately fails, for testing recovery |
 
-## Possible next steps (good to mention in an interview)
+## Future Improvements
 
 - Add a dead-letter stream for permanently failed jobs instead of just
   marking them `failed` in the hash.
