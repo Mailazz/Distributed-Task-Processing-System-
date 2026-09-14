@@ -1,0 +1,28 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+
+  worker:
+    build: ./worker
+    environment:
+      - REDIS_HOST=redis
+      - MAX_ATTEMPTS=3
+      - CLAIM_IDLE_MS=10000
+      - SIMULATED_FAIL_RATE=0.05
+    depends_on:
+      - redis
+    # Start with 1 replica; scale for benchmarking, e.g.:
+    #   docker compose up --scale worker=4
+    deploy:
+      replicas: 1
